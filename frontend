@@ -1,0 +1,72 @@
+'use client';
+import { useEffect, useState } from 'react';
+import io from 'socket.io-client';
+
+
+interface Message {
+  username: string;
+  text: string;
+}
+
+const socket = io('http://localhost:3000'); 
+
+export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [username, setUsername] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+  
+    socket.on('chat message', (newMsj: Message) => {
+      setMessages((prevMessages) => [...prevMessages, newMsj]);
+    });
+
+    return () => {
+      socket.off('chat message');
+    };
+  }, []);
+
+  const handleSend = () => {
+    if (username && message) {
+      const newMessage: Message = { username, text: message };
+      socket.emit('chat message', newMessage); 
+      setMessage(''); 
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen p-4 bg-gray-100">
+      <h1 className="text-lg font-bold text-center mb-2">Anlık Sohbet Uygulaması</h1>
+      <div className="flex-grow overflow-auto border border-gray-300 p-2 rounded mb-2 bg-white">
+        {messages.map((msg, index) => (
+          <div key={index} className="mb-1">
+            <strong className="text-blue-600 text-sm">{msg.username}:</strong> 
+            <span className="text-sm">{msg.text}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex space-x-2">
+        <input 
+          type="text" 
+          placeholder="Kullanıcı Adı" 
+          value={username} 
+          onChange={(e) => setUsername(e.target.value)} 
+          className="border border-gray-300 p-1 rounded w-1/3"
+        />
+        <input 
+          type="text" 
+          placeholder="Mesaj" 
+          value={message} 
+          onChange={(e) => setMessage(e.target.value)} 
+          className="border border-gray-300 p-1 rounded w-2/3"
+        />
+        <button 
+          onClick={handleSend} 
+          className="bg-blue-500 text-white p-1 rounded"
+        >
+          Gönder
+        </button>
+      </div>
+    </div>
+  );
+}
